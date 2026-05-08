@@ -1,5 +1,6 @@
 services:
   sss:
+    # 继续使用官方核心，因为它只是一个“黑盒子处理器”，不含你的隐私或逻辑
     image: cppla/serverstatus:latest
     container_name: serverstatus
     restart: unless-stopped
@@ -8,11 +9,27 @@ services:
       - ./json:/usr/share/nginx/html/json
     ports:
       - 35601:35601
-      - 35602:80 
+      - 35602:80
+    networks:
+      sss_net:
+        aliases:
+          - sss
+
   bot:
-    image: serverstatus-bot4sss  # 使用已经手动构建的镜像
+    # 这里的 bot 是你真正的核心资产，我们用 build 现场构建
+    build: 
+      context: .
+      dockerfile: Dockerfile 
     container_name: serverstatus-bot4sss
     restart: unless-stopped
+    depends_on:
+      - sss
     environment:
       - TG_CHAT_ID=tg_chat_id
       - TG_BOT_TOKEN=tg_bot_token
+    networks:
+      - sss_net
+
+networks:
+  sss_net:
+    driver: bridge
