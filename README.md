@@ -10,35 +10,16 @@
 
 其中，Bot token可以通过@BotFather创建机器人获取， Chat id可以通过@getuserID获取。
 ```
+mkdir -p /opt/stacks/sss
+cd /opt/stacks/sss
+
 cd /opt/stacks
 
-```
-```
-git clone https://github.com/jscntw/serverstatus.git
-
-```
-```
-cd serverstatus
-
-```
-```
-docker build -t serverstatus-bot4sss .
-
-```
-```
-chmod +x ./sss.sh && sudo ./sss.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN
-
-```
-```
-mkdir -p /opt/stacks/ServerStatus && cd /opt/stacks/ServerStatus && wget --no-check-certificate https://raw.githubusercontent.com/jscntw/ServerStatus/master/sss.sh && chmod +x ./sss.sh && sudo ./sss.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN
-
-```
-```
-sudo ./sss.sh
-
-```
-```
-python3 ./_sss.py
+直接获取你的全家桶运行 
+wget -N --no-check-certificate https://raw.githubusercontent.com/jscntw/serverstatus/master/sss.sh
+chmod +x sss.sh
+# 格式：./sss.sh "你的CHAT_ID" "你的BOT_TOKEN"
+./sss.sh 
 
 ```
 
