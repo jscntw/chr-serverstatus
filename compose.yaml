@@ -20,7 +20,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile 
-    container_name: serverstatus-bot4sss
+    container_name: sss-bot
     restart: unless-stopped
     depends_on:
       - sss
