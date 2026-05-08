@@ -20,7 +20,7 @@ except ImportError:
 
 # ======= 基础配置区 (会被命令行参数覆盖) =======
 SERVER = "127.0.0.1"
-USER = "s01"
+USER = "chr_v4"
 PORT = 35601
 PASSWORD = "USER_DEFAULT_PASSWORD"
 INTERVAL = 3         # 建议设置为3，降低受控机压力
