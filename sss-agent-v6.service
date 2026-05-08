@@ -1,0 +1,15 @@
+[Unit]
+Description=ServerStatus Agent IPv6
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/stacks/sss/agent
+# 注意这里运行的是 client-linux-v6.py
+ExecStart=/usr/bin/python3 /opt/stacks/sss/agent/client-linux-v6.py SERVER=sss_host USER=sss_user PASSWORD=sss_pass
+Restart=always
+Environment="PYTHONIOENCODING=utf-8"
+User=root
+
+[Install]
+WantedBy=multi-user.target
