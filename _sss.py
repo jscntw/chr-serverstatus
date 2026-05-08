@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
 # Modified for Dual-Stack Support (IPv4 + IPv6)
-# Original by: https://github.com/lidalao/ServerStatus
 
 import json
 import sys
