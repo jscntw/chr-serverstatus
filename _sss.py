@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# Modified for Dual-Stack Support (IPv4 + IPv6)
+# Modified for Dual-Stack Support (IPv4 + IPv6) - Auto-split V4/V6 Slots
 
 import json
 import sys
 import os
 import requests
-import random, string
+import random
+import string
 import subprocess
 import uuid
 
@@ -16,14 +17,18 @@ IP_URL = "https://api.ipify.org"
 jjs = {}
 ip = ""
 
+# 颜色定义
+green = '\033[0;32m'
+plain = '\033[0m'
+
 def how2agent(user, passwd):
     print("\n" + "="*50)
     print(f"推荐：使用全能脚本安装双栈监控 (IPv4 + IPv6)")
     print("-" * 50)
-    # 修改此处：指向全新的 sss.sh 脚本
+    # 这里保持 base_user，因为 sss.sh 会自动加后缀
     print('wget -N --no-check-certificate {0}/sss.sh && chmod +x sss.sh && sudo ./sss.sh {1} {2} {3}'.format(GITHUB_RAW_URL, getIP(), user, passwd))
     print("="*50 + "\n")
-    print(f"注意：服务端 config.json 已自动为该用户预留 _v4 和 _v6 后缀。")
+    print(f"提示：服务端已自动为您创建了 {user}_v4 和 {user}_v6 两个槽位。")
 
 def getIP():
     global ip
@@ -35,12 +40,17 @@ def getIP():
     return ip
 
 def restartSSS():
-    # 尝试使用 docker-compose 重启服务端以加载新配置
-    print("> 正在尝试重启服务端容器...")
+    print("> 正在尝试重启服务端容器以加载新配置...")
     try:
-        subprocess.run(["docker-compose", "restart"], check=True)
-    except Exception as e:
-        print(f"> 重启失败，请手动执行 docker-compose restart。错误: {e}")
+        # 兼容 docker-compose 和 docker compose
+        cmd = ["docker-compose", "restart"]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except:
+        try:
+            cmd = ["docker", "compose", "restart"]
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            print(f"> 重启失败，请手动执行 docker-compose restart。")
 
 def getPasswd():
     sz = '123456789'
@@ -51,6 +61,7 @@ def getPasswd():
     return "".join(mima)
 
 def saveJJs():
+    # 按名字排序
     jjs['servers'] = sorted(jjs['servers'], key=lambda d: d['name']) 
     with open(CONFIG_FILE, "w") as f:
         f.write(json.dumps(jjs, indent=4))
@@ -75,42 +86,44 @@ def _back():
     cmd()
 
 def add():
-    print('>>> 请输入节点名字 (例如: HK-01):')
+    print('>>> 请输入节点显示名字 (例如: HK-01):')
     jjname = input().strip()
     if jjname == "":
         print("输入不能为空")
         _back()
         return
-
+    
     print(f'>>> 请输入 {jjname} 的位置 (默认: us):')
     jjloc = input().strip() or "us"
     
     print(f'>>> 请输入 {jjname} 的虚拟化类型 (默认: kvm):')
     jjtype = input().strip() or "kvm"
 
-    # 生成基础配置
-    # 注意：我们的 Agent 脚本会自动在用户名后加 _v4 和 _v6
-    # 因此我们在这里生成一个基础用户名，由 Agent 去匹配后缀
-    common_user = uuid.uuid4().hex[:8] # 取简短的 8 位
+    # 1. 生成一套基础账号
+    common_user = uuid.uuid4().hex[:8] 
     common_pass = getPasswd()
 
-    item = {
-        "name": jjname,
-        "location": jjloc,
-        "type": jjtype,
-        "host": jjname,
-        "monthstart": 1,
-        "username": common_user,
-        "password": common_pass
-    }
+    # 2. 核心修改：循环创建两个节点（v4 和 v6）
+    # 这样受控端运行一次脚本，服务端两个坑位都能对上
+    for suffix in ["_v4", "_v6"]:
+        item = {
+            "name": f"{jjname}{suffix}",
+            "location": jjloc,
+            "type": jjtype,
+            "host": jjname,
+            "monthstart": 1,
+            "username": f"{common_user}{suffix}", # 这里生成 user_v4 和 user_v6
+            "password": common_pass
+        }
+        jjs['servers'].append(item)
 
-    jjs['servers'].append(item)
     saveJJs()
     
-    print(f"\n{green}节点添加成功！正在重启服务...{plain}")
+    print(f"\n{green}双栈节点添加成功！正在重启服务...{plain}")
     restartSSS()
     
     _show()
+    # 引导用户安装时，只需要传 common_user，因为 sss.sh 内部会自动加后缀去连
     how2agent(common_user, common_pass)
     _back()
 
@@ -122,7 +135,6 @@ def update():
         print('无效输入')
         _back()
         return
-
     jj = jjs['servers'][int(idx)]
     print(f'>>> 修改节点: {jj["name"]}')
     
@@ -149,13 +161,11 @@ def remove():
         print('无效输入')
         _back()
         return
-
     target = jjs['servers'][int(idx)]
     confirm = input(f">>> 确定要删除节点 {target['name']} 吗？[Y/n]: ")
     if confirm.lower() == 'n':
         _back()
         return
-
     del jjs['servers'][int(idx)]
     saveJJs()
     restartSSS()
@@ -183,12 +193,7 @@ def cmd():
         cmd()
 
 if __name__ == '__main__':
-    # 颜色代码适配简单的终端输出
-    green, plain = '\033[0;32m', '\033[0m'
-    
     if not os.path.exists(CONFIG_FILE):
-        print(f"错误: 找不到 {CONFIG_FILE}，请确保在服务端目录下运行。")
-        # 尝试创建一个空配置
         with open(CONFIG_FILE, "w") as f:
             f.write('{"servers":[]}')
     
@@ -197,5 +202,4 @@ if __name__ == '__main__':
             jjs = json.load(f)
         except:
             jjs = {"servers": []}
-    
     cmd()
