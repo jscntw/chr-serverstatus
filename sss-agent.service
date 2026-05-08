@@ -1,29 +1,15 @@
 [Unit]
-Description=Server Status Agent
-After=syslog.target
-
+Description=ServerStatus Agent IPv4
+After=network.target
 
 [Service]
-# Modify these two values and uncomment them if you have
-# repos with lots of files and get an HTTP error 500 because
-# of that
-###
-#LimitMEMLOCK=infinity
-#LimitNOFILE=65535
 Type=simple
-User=root
-Group=root
-WorkingDirectory=/opt/sss/agent/
-ExecStart=/usr/bin/python3 /opt/sss/agent/client-linux.py SERVER=sss_host USER=sss_user PASSWORD=sss_pass
+# 确保路径与 sss-agent.sh 中的 SSS_AGENT_PATH 一致
+WorkingDirectory=/opt/stacks/sss/agent
+ExecStart=/usr/bin/python3 /opt/stacks/sss/agent/client-linux.py SERVER=sss_host USER=sss_user PASSWORD=sss_pass
 Restart=always
-#Environment=DEBUG=true
-
-# Some distributions may not support these hardening directives. If you cannot start the service due
-# to an unknown option, comment out the ones not supported by your version of systemd.
-#ProtectSystem=full
-#PrivateDevices=yes
-#PrivateTmp=yes
-#NoNewPrivileges=true
+Environment="PYTHONIOENCODING=utf-8"
+User=root
 
 [Install]
 WantedBy=multi-user.target
