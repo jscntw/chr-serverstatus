@@ -1,249 +1,202 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# Create by : https://github.com/lidalao/ServerStatus
-# 版本：0.0.1, 支持Python版本：2.7 to 3.9
-# 支持操作系统： Linux, OSX, FreeBSD, OpenBSD and NetBSD, both 32-bit and 64-bit architectures
+# Modified for Dual-Stack Support (IPv4 + IPv6)
+# Original by: https://github.com/lidalao/ServerStatus
 
 import json
 import sys
 import os
 import requests
-import random,string
+import random, string
 import subprocess
 import uuid
 
 CONFIG_FILE = "config.json"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/jscntw/serverstatus/master"
 IP_URL = "https://api.ipify.org"
-
 jjs = {}
 ip = ""
 
 def how2agent(user, passwd):
-    print('```')
-    print("\n")
-    print('curl -L {0}/sss-agent.sh  -o sss-agent.sh && chmod +x sss-agent.sh && sudo ./sss-agent.sh {1} {2} {3}'.format(GITHUB_RAW_URL, getIP(), user, passwd))
-    print("\n")
-    print('```')
-
+    print("\n" + "="*50)
+    print(f"推荐：使用全能脚本安装双栈监控 (IPv4 + IPv6)")
+    print("-" * 50)
+    # 修改此处：指向全新的 sss.sh 脚本
+    print('wget -N --no-check-certificate {0}/sss.sh && chmod +x sss.sh && sudo ./sss.sh {1} {2} {3}'.format(GITHUB_RAW_URL, getIP(), user, passwd))
+    print("="*50 + "\n")
+    print(f"注意：服务端 config.json 已自动为该用户预留 _v4 和 _v6 后缀。")
 
 def getIP():
     global ip
-    if ip == "": 
-        ip = requests.get(IP_URL).content.decode('utf8')
+    if ip == "":
+        try:
+            ip = requests.get(IP_URL, timeout=10).content.decode('utf8')
+        except:
+            ip = "你的服务端IP"
     return ip
 
 def restartSSS():
-    cmd = ["docker-compose", "restart"]
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    for line in p.stdout:
-        print(line)
-    p.wait()
+    # 尝试使用 docker-compose 重启服务端以加载新配置
+    print("> 正在尝试重启服务端容器...")
+    try:
+        subprocess.run(["docker-compose", "restart"], check=True)
+    except Exception as e:
+        print(f"> 重启失败，请手动执行 docker-compose restart。错误: {e}")
 
 def getPasswd():
-	mima = [] 
-	sz = '123456789'
-	xzm = 'abcdefghijklmnopqrstuvwxyz'
-	dzm = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-	# tzf = '~!#@$%^&*?'
-	# all = sz + xzm + dzm + tzf
-	all = sz + xzm + dzm 
-	m1 = random.choice(sz)
-
-	m2 = random.choice(xzm)
-	m3 = random.choice(dzm)
-	# m4 = random.choice(tzf)
-	m5 = "".join(random.sample(all,12))
-	mima.append(m1)
-	mima.append(m2)
-	mima.append(m3)
-	# mima.append(m4)
-	mima.append(m5)
-	random.shuffle(mima)
-	a = "".join(mima)
-	return a
+    sz = '123456789'
+    all_chars = sz + 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    mima = [random.choice(sz), random.choice('abcdefg'), random.choice('ABCDEFG')]
+    mima.extend(random.sample(all_chars, 9))
+    random.shuffle(mima)
+    return "".join(mima)
 
 def saveJJs():
     jjs['servers'] = sorted(jjs['servers'], key=lambda d: d['name']) 
-
-    file = open(CONFIG_FILE,"w")
-    file.write(json.dumps(jjs))
-    file.close()
+    with open(CONFIG_FILE, "w") as f:
+        f.write(json.dumps(jjs, indent=4))
 
 def _show():
-    print("---你的jjs如下---")
-    print("\n")
-    if len(jjs['servers']) == 0:
-        print('>>> 你好MJJ, 暂时没发现你有任何jj! <<<')
-        print("\n")
-        print("-----------------")
+    print("\n--- 当前节点列表 ---")
+    if not jjs.get('servers'):
+        print('>>> 暂无任何节点，请选择添加！ <<<')
         return
     
     for idx, item in enumerate(jjs['servers']):
-        print(str(idx) + ". name: " + item['name'] + ", loc: "+ item['location'] + ", type: " + item['type']) 
-    
-    print("\n")
-    print("-----------------")
+        print(f"{idx}. 名字: {item['name']} | 用户名: {item['username']} | 位置: {item['location']}")
+    print("-" * 20)
 
 def show():
     _show()
     _back()
 
 def _back():
-    print(">>>按任意键返回上级菜单")
+    print("\n>>> 按回车键返回上级菜单")
     input()
     cmd()
 
 def add():
-    print('>>>请输入jj名字：')
-    jjname =input()    
+    print('>>> 请输入节点名字 (例如: HK-01):')
+    jjname = input().strip()
     if jjname == "":
-        print("输入有误")
+        print("输入不能为空")
         _back()
         return
 
-    print('>>>请输入{0}位置：[{1}]'.format(jjname, "us"))
-    jjloc =input()
-    if jjloc == "":
-        jjloc = "us"
+    print(f'>>> 请输入 {jjname} 的位置 (默认: us):')
+    jjloc = input().strip() or "us"
+    
+    print(f'>>> 请输入 {jjname} 的虚拟化类型 (默认: kvm):')
+    jjtype = input().strip() or "kvm"
 
-    print('>>>请输入{0}类型：[{1}]'.format(jjname, "kvm"))
-    jjtype =input()
-    if jjtype == "":
-        jjtype = "kvm"  
-     
-    item = {}
-    item['monthstart'] = "1"
-    item['location'] = jjloc
-    item['type'] = jjtype
-    item['name'] = jjname
-    item['username'] = uuid.uuid4().hex
-    item['host'] = jjname
-    item['password'] = getPasswd()
+    # 生成基础配置
+    # 注意：我们的 Agent 脚本会自动在用户名后加 _v4 和 _v6
+    # 因此我们在这里生成一个基础用户名，由 Agent 去匹配后缀
+    common_user = uuid.uuid4().hex[:8] # 取简短的 8 位
+    common_pass = getPasswd()
+
+    item = {
+        "name": jjname,
+        "location": jjloc,
+        "type": jjtype,
+        "host": jjname,
+        "monthstart": 1,
+        "username": common_user,
+        "password": common_pass
+    }
+
     jjs['servers'].append(item)
     saveJJs()
-
-    print("操作完成，等待服务重启")
+    
+    print(f"\n{green}节点添加成功！正在重启服务...{plain}")
     restartSSS()
-
-    print("添加成功!")
+    
     _show()
-    print('>>>请复制以下命令在机器{0}安装agent服务'.format(item['name']))
-    how2agent(item['username'], item['password'])
+    how2agent(common_user, common_pass)
     _back()
 
 def update():
-    print("请输入需要更新的jj标号：")
+    _show()
+    print(">>> 请输入需要更新的节点编号：")
     idx = input()
-    if not idx.isnumeric():
-        print('无效输入,退出')
-        _back()
-        return
-    
-    if len(jjs['servers']) <= int(idx):
-        print('输入无效')
+    if not idx.isnumeric() or int(idx) >= len(jjs['servers']):
+        print('无效输入')
         _back()
         return
 
     jj = jjs['servers'][int(idx)]
-    print('--- 面板更换ip时，请复制以下命令在机器{0}安装agent服务 ---'.format(jj['name']))
-    how2agent(jj['username'], jj['password'])
-
-    print('>>>请输入{0}新名字：[{1}] *中括号内为原值，按回车表示不做修改*'.format(jj['name'], jj['name']))
-    jjname = input()
-    if "" != jjname:
-        jjs['servers'][int(idx)]['name'] = jjname
+    print(f'>>> 修改节点: {jj["name"]}')
     
-    print('>>>请输入{0}新位置：[{1}]'.format(jj['name'], jj['location']))
-    jjloc = input()
-    if "" != jjloc:
-        jjs['servers'][int(idx)]['location'] = jjloc
+    new_name = input(f"新名字 [{jj['name']}]: ").strip() or jj['name']
+    new_loc = input(f"新位置 [{jj['location']}]: ").strip() or jj['location']
+    new_type = input(f"新类型 [{jj['type']}]: ").strip() or jj['type']
     
-    print('>>>请输入{0}新类型：[{1}]'.format(jj['name'], jj['type']))
-    jjtype = input()
-    if "" != jjtype:
-        jjs['servers'][int(idx)]['type'] = jjtype
+    jjs['servers'][int(idx)].update({
+        "name": new_name,
+        "location": new_loc,
+        "type": new_type
+    })
     
-    print('>>>请输入{0}新的月流量起始日：[{1}]'.format(jj['name'], jj['monthstart']))
-    jjms = input()
-    if "" != jjms:
-        jjs['servers'][int(idx)]['monthstart'] = jjms
-
-    if "" == jjname and "" == jjloc and "" == jjtype and "" == jjms:
-        print('未做任何更新，直接返回')
-        _back()
-        return
     saveJJs()
-    print("操作完成，等待服务重启")
     restartSSS()
     print("更新成功!")
-    _show()
     _back()
 
 def remove():
-    print(">>>请输入需要删除的jj标号：")
-    idx =input()
-    if not idx.isnumeric():
-        print('无效输入,退出')
+    _show()
+    print(">>> 请输入需要删除的节点编号：")
+    idx = input()
+    if not idx.isnumeric() or int(idx) >= len(jjs['servers']):
+        print('无效输入')
         _back()
         return
-    
-    if len(jjs['servers']) <= int(idx):
-        print('输入无效')
-        _back()
-        return
-    
-    print('>>>请确认你需要删除的节点：{0}？ [Y/n]'.format(jjs['servers'][int(idx)]['name'])) 
-    yesOrNo =  input()
-    if yesOrNo == "n" or yesOrNo == "N":
-        print("取消删除")
+
+    target = jjs['servers'][int(idx)]
+    confirm = input(f">>> 确定要删除节点 {target['name']} 吗？[Y/n]: ")
+    if confirm.lower() == 'n':
         _back()
         return
 
     del jjs['servers'][int(idx)]
     saveJJs()
-    print("操作完成，等待服务重启")
     restartSSS()
     print("删除成功!")
-    _show()
     _back()
-    
+
 def cmd():
-    print("\n")
-    print('- - - 欢迎使用最简洁的探针: Server Status - - -')
-    print('')
-    print("\n")
-    _show()
-    print("\n")
-
-    print('>>>请输入操作标号：1.查看, 2.添加, 3.删除, 4.更新, 0.退出')
-    x = input()
-    if not x.isnumeric():
-        print('无效输入, 退出')
-        return
+    print("\n" + "="*40)
+    print("  Server Status 节点管理工具 (双栈适配版)")
+    print("="*40)
+    print('1. 查看节点')
+    print('2. 添加节点')
+    print('3. 删除节点')
+    print('4. 更新节点')
+    print('0. 退出')
     
-    if 1 == int(x):
-        show()
-    elif 2 == int(x):
-        add()
-    elif 3 == int(x):
-        remove() 
-    elif 4 == int(x):
-        update()
-    elif 0 == int(x):
-        return
+    choice = input("\n请输入操作编号: ").strip()
+    if choice == '1': show()
+    elif choice == '2': add()
+    elif choice == '3': remove()
+    elif choice == '4': update()
+    elif choice == '0': sys.exit()
     else:
-        print('无效输入, 退出')
-        return
-
+        print("无效输入")
+        cmd()
 
 if __name__ == '__main__':
-    file_exists = os.path.exists(CONFIG_FILE)
-    if file_exists == False: 
-        print("请在当前目录创建config.json!")
-        exit()
+    # 颜色代码适配简单的终端输出
+    green, plain = '\033[0;32m', '\033[0m'
     
-    file = open(CONFIG_FILE,"r")
-    jjs = json.load(file)
-    file.close()
+    if not os.path.exists(CONFIG_FILE):
+        print(f"错误: 找不到 {CONFIG_FILE}，请确保在服务端目录下运行。")
+        # 尝试创建一个空配置
+        with open(CONFIG_FILE, "w") as f:
+            f.write('{"servers":[]}')
+    
+    with open(CONFIG_FILE, "r") as f:
+        try:
+            jjs = json.load(f)
+        except:
+            jjs = {"servers": []}
+    
     cmd()
