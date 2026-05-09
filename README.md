@@ -3,7 +3,6 @@
 
 - 更方便的节点管理, 支持增删改查
 - 上下线通知（telegram）
-- Agent机器安装脚本改为systemd， 支持开机自启
 
 # 安装
 在**服务端**复制以下命令，一键到底。请记得替换成你自己的YOUR_TG_CHAT_ID和YOUR_TG_BOT_TOKEN。
