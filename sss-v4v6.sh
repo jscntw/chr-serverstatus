@@ -10,7 +10,7 @@
 SSS_BASE_PATH="/opt/stacks/sss"
 SSS_AGENT_PATH="${SSS_BASE_PATH}/agent"
 SSS_SERVER_PATH="${SSS_BASE_PATH}"
-GITHUB_RAW_URL="https://raw.githubusercontent.com/jscntw/serverstatus/master"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/jscntw/chr-serverstatus/master"
 
 # 颜色定义
 red='\033[0;31m'
