@@ -2,7 +2,7 @@
 #========================================================
 #   System Required: CentOS 7+ / Debian 8+ / Ubuntu 16+
 #   Description: Server Status 全能管理脚本 (适配 Dockge + 智能双栈)
-#   Github: https://github.com/jscntw/serverstatus
+#   Github: https://github.com/jscntw/chr-serverstatus
 #========================================================
 
 # 基础目录与 URL
