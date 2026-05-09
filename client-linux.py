@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
+
 import socket, time, timeit, re, os, sys, json, subprocess, threading
 try:
     from queue import Queue
@@ -7,11 +8,12 @@ except ImportError:
     from Queue import Queue
 
 # ======= 基础配置 (由命令行参数覆盖) =======
-SERVER, USER, PORT, PASSWORD = "127.0.0.1", "chr_v4", 35601, "USER_DEFAULT_PASSWORD"
+SERVER, USER, PORT, PASSWORD = "127.0.0.1", "default_user", 35601, "default_pass"
 INTERVAL, PROBEPORT, PING_HISTORY = 3, 80, 100
 
 # 探测点定义
-V4_NODES = ["111.62.161.21", "180.76.76.76", "223.5.5.5 "]
+V4_NODES = ["111.62.161.21", "180.76.76.76", "223.5.5.5"]
+# 重点：这里是你要求的 80 端口全通的 IPv6 节点
 V6_NODES = ["2408:871a:2100:2::20", "2400:3200:baba::1", "2400:3200::1"]
 
 # 参数解析
@@ -20,15 +22,15 @@ for argc in sys.argv:
     if 'USER=' in argc: USER = argc.split('USER=')[-1]
     if 'PASSWORD=' in argc: PASSWORD = argc.split('PASSWORD=')[-1]
 
-# 自动识别模式
+# ======= 双栈自动识别逻辑 (修正版) =======
 if "_v6" in USER:
     CU, CT, CM = V6_NODES
-    print("Mode: IPv6 Monitoring")
+    print(f"Mode: IPv6 Monitoring (Nodes: {V6_NODES})")
 else:
     CU, CT, CM = V4_NODES
-    print("Mode: IPv4 Monitoring")
+    print(f"Mode: IPv4 Monitoring (Nodes: {V4_NODES})")
 
-# ======= 采集逻辑 (保持原样) =======
+# ======= 系统信息采集逻辑 =======
 def get_uptime():
     with open('/proc/uptime', 'r') as f: return int(f.readline().split('.')[0])
 
@@ -68,7 +70,7 @@ def liuliang():
             ni += int(it[0]); no += int(it[8])
     return ni, no
 
-# ======= 网络探测 (保持原样) =======
+# ======= 网络探测逻辑 =======
 lostRate = {'10010':0.0, '189':0.0, '10086':0.0}
 pingTime = {'10010':0, '189':0, '10086':0}
 netSpeed = {'rx':0, 'tx':0, 'clock':time.time(), 'avgrx':0, 'avgtx':0}
@@ -80,6 +82,7 @@ def _ping_thread(host, mark):
         if q.full() and q.get() == 0: lost -= 1
         try:
             b = timeit.default_timer()
+            # 自动判断是 AF_INET 还是 AF_INET6
             fam = socket.AF_INET6 if ":" in host else socket.AF_INET
             s = socket.socket(fam, socket.SOCK_STREAM)
             s.settimeout(1); s.connect((host, PROBEPORT)); s.close()
@@ -102,6 +105,7 @@ def _net_speed():
         time.sleep(INTERVAL)
 
 if __name__ == '__main__':
+    # 启动探测线程
     for h, m in [(CU,'10010'), (CT,'189'), (CM,'10086')]:
         threading.Thread(target=_ping_thread, args=(h,m), daemon=True).start()
     threading.Thread(target=_net_speed, daemon=True).start()
@@ -114,8 +118,10 @@ if __name__ == '__main__':
                 s.send(f"{USER}:{PASSWORD}\n".encode())
                 data = s.recv(1024).decode()
                 if "Authentication successful" not in data: raise Exception("Auth Failed")
+                
+                # 判定服务端下发的 IP 版本显示
+                check_ip = 6 if "IPv4" in data else 4
             
-            check_ip = 6 if "IPv4" in data else 4
             while True:
                 mt, mu, st, sf = get_memory()
                 ht, hu = get_hdd()
@@ -131,4 +137,5 @@ if __name__ == '__main__':
                     'tcp':0, 'udp':0, 'process':0, 'thread':0, 'online'+str(check_ip): True
                 }
                 s.send(f"update {json.dumps(arr)}\n".encode())
-        except: time.sleep(3)
+        except: 
+            time.sleep(3)
