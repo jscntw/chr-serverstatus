@@ -16,7 +16,7 @@ cd /opt/stacks/sss
 cd /opt/stacks
 
 直接获取你的全家桶运行 
-wget -N --no-check-certificate https://raw.githubusercontent.com/jscntw/serverstatus/master/sss.sh
+wget -N --no-check-certificate https://raw.githubusercontent.com/jscntw/chr-serverstatus/master/sss.sh
 chmod +x sss.sh
 # 格式：./sss.sh "你的CHAT_ID" "你的BOT_TOKEN"
 ./sss.sh 
