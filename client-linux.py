@@ -8,7 +8,7 @@ except ImportError:
 
 # ======= 基础配置 (由命令行参数覆盖) =======
 SERVER, USER, PORT, PASSWORD = "127.0.0.1", "chr_v4", 35601, "USER_DEFAULT_PASSWORD"
-INTERVAL, PROBEPORT, PING_HISTORY = 3, 53, 100
+INTERVAL, PROBEPORT, PING_HISTORY = 3, 80, 100
 
 # 探测点定义
 V4_NODES = ["111.62.161.21", "180.76.76.76", "223.5.5.5 "]
