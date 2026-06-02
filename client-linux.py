@@ -12,7 +12,8 @@ SERVER, USER, PORT, PASSWORD = "127.0.0.1", "default_user", 35601, "default_pass
 INTERVAL, PROBEPORT, PING_HISTORY = 3, 80, 100
 
 # 探测点定义
-V4_NODES = ["111.62.161.21", "180.76.76.76", "223.5.5.5"]
+V4_NODES = ["cu.tz.cloudcpp.com", "ct.tz.cloudcpp.com", "cm.tz.cloudcpp.com"]
+# V4_NODES = ["111.62.161.21", "180.76.76.76", "223.5.5.5"]
 # 重点：这里是你要求的 80 端口全通的 IPv6 节点
 V6_NODES = ["2400:3200:baba::1", "240e:928:1400:10::25", "2400:3200::1"]
 
